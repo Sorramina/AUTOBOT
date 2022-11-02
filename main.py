@@ -7,6 +7,7 @@ import openpyxl
 
 bot = telebot.TeleBot('5413159629:AAHieK0bNLkm339Y53OMzPF5-jmJCOwZfW8',parse_mode='Markdown')
 
+# Админ и БД пользователей
 admins = [1413828191,]
 joinedFile = open('joined.txt','r')
 joinedUsers = set()
@@ -19,12 +20,17 @@ setOfProd = []
 prodStatus = False
 fromCart = False
 price_Main = 0 # итоговая цена в корзине
-txt123 =  ""
-proverka = 0
+enter_msg =  ""
+status_check = 0
+service_info = ''
+main_Name = ''
+phone_number = ''
+
 item1=types.KeyboardButton('Записаться')
 item2=types.KeyboardButton('Контакты')
 mainMenu = [item1,item2]
 
+# Возвращает строку без первого символа
 def extract_arg(arg):
     arg = arg[1:]
     return arg
@@ -96,7 +102,7 @@ def handle_text(message):
             
 
 @bot.message_handler(content_types=['text'])
-def handle_text(message):
+def handle_text2(message):
     if message.text.strip() == 'Записаться' :
 
           bot.send_message(message.from_user.id, "Введите имя(ФИО):", reply_markup=types.ReplyKeyboardRemove())
@@ -108,32 +114,39 @@ def handle_text(message):
             bot.send_message(message.chat.id,"<a href='http://ab72.ru/'>Перейти на сайт</a>", parse_mode='HTML')
 
 @bot.message_handler(content_types=['text'])
+def handle_text3(message):
+    global fromCart
+    if fromCart == True:
+          bot.send_message(message.from_user.id, "Введите имя(ФИО):", reply_markup=types.ReplyKeyboardRemove())
+          bot.register_next_step_handler(message, get_name)
+
+@bot.message_handler(content_types=['text'])
 def get_name(message):
     if message.text.strip() == 'Контакты':
         bot.register_next_step_handler(message, start)
-    global txt123
-    global FN
-    FN = message.text.strip()
-    if  proverka == 1:
-        txt123 = ''
-    txt123 += 'ФИО:'
-    txt123 += message.text
-    txt123 += ' \n'
+    global enter_msg
+    global main_Name
+    main_Name = message.text.strip()
+    if  status_check == 1:
+        enter_msg = ''
+    enter_msg += 'ФИО:'
+    enter_msg += message.text
+    enter_msg += ' \n'
     bot.send_message(message.from_user.id, "Введите номер:", reply_markup=types.ReplyKeyboardRemove())
     bot.register_next_step_handler(message, get_num)
 
 @bot.message_handler(content_types=['text'])
 def get_num(message):
-    global NUMB
+    global phone_number
     global fromCart
     # test_1 = int(message.text.strip())
-    NUMB = message.text.strip()
+    phone_number = message.text.strip()
     if message.text.strip() == 'Контакты':
         bot.register_next_step_handler(message, start)
-    global txt123
-    txt123 += 'Номер:'
-    txt123 += message.text
-    txt123 += " \n"
+    global enter_msg
+    enter_msg += 'Номер:'
+    enter_msg += message.text
+    enter_msg += " \n"
     if fromCart == False:
         bot.send_message(message.from_user.id, "Введите услугу:", reply_markup=types.ReplyKeyboardRemove())
         bot.register_next_step_handler(message, get_serv)
@@ -143,21 +156,22 @@ def get_num(message):
 
 
 def get_serv(message):
-    if message.text.strip() == 'Контакты':
-        bot.register_next_step_handler(message, start)
-    global txt123
-    global SN
+    global enter_msg
+    global service_info
     global cart
     global price_Main
     global cart_Main_Item
     global cart_Main_Name
     global setOfProd
+    if message.text.strip() == 'Контакты':
+        bot.register_next_step_handler(message, start)
+    
     if fromCart == False:
-        SN = message.text.strip()
-        txt123 += 'Услуга:'
-        txt123 += message.text
-        txt123 += " \n"
-        emsg = "Заявка составлена: \n" + txt123+ " \n(Отправить заявку? Да/Нет)"
+        service_info = message.text.strip()
+        enter_msg += 'Услуга:'
+        enter_msg += message.text
+        enter_msg += " \n"
+        emsg = "Заявка составлена: \n" + enter_msg+ " \n(Отправить заявку? Да/Нет)"
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("Да")
@@ -171,8 +185,8 @@ def get_serv(message):
         msg2 = 'Итог: '+str(price_Main)+'₽'
         setOfProd.append(msg2)
         for a in setOfProd:
-            SN+=a
-            SN+=' '
+            service_info+=a
+            service_info+=' '
         emsg = "Заявка составлена:\n(Отправить заявку? Да/Нет)"
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -184,16 +198,19 @@ def get_serv(message):
 
 
 def ending(message):
-    global txt123
+    global enter_msg
     global prodStatus
     global fromCart
+    global service_info
+    global phone_number
+    global main_Name
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(mainMenu[0],mainMenu[1])
     if message.text.strip() == 'Контакты':
         bot.register_next_step_handler(message, start)
     if message.text.strip() == 'Нет':
-         proverka = 1
-         txt123 = ''
+         status_check = 1
+         enter_msg = ''
          bot.send_message(message.from_user.id, "Ваша заявка отменена",reply_markup=markup)
          bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAESSJFjOuHAujA7SXKr790cUj2tgStt-AACIgEAAixCIQzD75jbbLDogCoE')
          bot.register_next_step_handler(message, start)
@@ -204,17 +221,20 @@ def ending(message):
         sheet = doc['INFO']
 
         rows = (
-            (FN, NUMB,SN),
+            (main_Name, phone_number,service_info),
         )
 
         for row in rows:
             sheet.append(row)
         doc.save('Data.xlsx')
-        txt123 = ''
+        enter_msg = ''
         ans2 = "Благодарим за обращение, надемся мы смогли решить ваш вопрос"
         bot.send_message(message.from_user.id, ans2)
         bot.send_sticker(message.chat.id, 'CAACAgIAAxkBAAEQzYZiyXrR7d6drGl_cxub4lOtKJn2xQAC5g4AAkFyKEraBMBMl5EVaSkE',reply_markup=markup)
-    txt123 = ''
+    main_Name = ''
+    phone_number = ''
+    service_info = ''
+    enter_msg = ''
     prodStatus = False
     fromCart = False
 
@@ -245,7 +265,9 @@ def callback_worker(call):
     elif call.data == 'PAID':
         fromCart = True
         prodStatus = True
-        # bot.register_next_step_handler(call.message, handle_text)
+        bot.send_message(call.message.chat.id, "Введите имя(ФИО):", reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(call.message, get_name)
+        # bot.register_next_step_handler(call.message, handle_text3)
     elif call.data == "BLUE": #call.data это callback_data, которую мы указали при объявлении кнопки
        keyboard = types.InlineKeyboardMarkup(); #наша клавиатура
        key_1 = types.InlineKeyboardButton(text = 'Просмотр', callback_data ='show1')
